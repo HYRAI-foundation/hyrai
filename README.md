@@ -1,4 +1,4 @@
-# Hyra AI agent & Eliza Hyperliquid plugin
+# Hyra AI agent & Eliza Hyperliquid [plugin](./packages/plugin-hyperliquid/)
 
 <div align="center">
   <img src="hyra.jpg" alt="Hyra AI" width="280px" />
@@ -10,7 +10,7 @@
 - [x] Telegram bot
 - [x] Site chat via REST API
 
-Hyperliquid plugin specific features:
+**Hyperliquid plugin specific features:**
 - [x] Assets prices provider
 - [x] Wallet portfolio & positions (perpetuals) provider
 - [ ] Positions actions
