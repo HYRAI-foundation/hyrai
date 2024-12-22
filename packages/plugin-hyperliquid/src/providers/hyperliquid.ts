@@ -10,7 +10,7 @@ export class HL {
     private cache: NodeCache;
     private cacheBaseKey: string = "hyperliquid";
 
-    constructor(private cacheManager: ICacheManager, private privateKey: string | null, private walletAddress: string | null) {
+    constructor(private cacheManager: ICacheManager, private privateKey: string | null, private walletAddress: string | null, private isAgentWallet: boolean) {
         this.sdk = new Hyperliquid(privateKey, false, walletAddress);
         this.cache = new NodeCache({ stdTTL: 60 }); // Cache TTL set to 1 minutes
     }
@@ -86,8 +86,8 @@ export class HL {
         try {
             const perpPortfolio = await this.getPerpPortfolio();
 
-            let output = `${runtime.character.name} `;
-            output += `Hyperliquid Wallet Address: ${this.walletAddress}\n\n`;
+            let output = `${this.isAgentWallet ? runtime.character.name : '\n'} `;
+            output += `Hyperliquid Wallet Address: ${this.walletAddress}\n`;
 
             output += `Perpetuals Account Summary:\n`;
             output += `Perps total equity: ${perpPortfolio.marginSummary.accountValue}\n`;
@@ -112,27 +112,33 @@ export class HL {
     }
 }
 
+const parseWalletFromString = (data: string): string | null => {
+    const walletRegex = /0x[a-fA-F0-9]{40}/;
+    const match = data.match(walletRegex);
+    return match ? match[0] : null;
+}
+
 /*
     Manages Hyperliquid data and provides a context to the agent
 */
 export const hyperliquidProvider: Provider = {
     get: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-
         try {
+            const msgWalletAddress = parseWalletFromString(message.content.text);
+
             const privateKey = runtime.getSetting("HYPERLIQUID_PRIVATE_KEY");
             const walletAddress = runtime.getSetting("HYPERLIQUID_WALLET_ADDRESS");
 
-            const hl = new HL(runtime.cacheManager, privateKey, walletAddress);
+            const hl = new HL(runtime.cacheManager, msgWalletAddress ? null : privateKey, msgWalletAddress ? msgWalletAddress : walletAddress, msgWalletAddress ? true : false);
 
             let context = '';
 
             const mids = await hl.getAllMids();
             context += `Hyperliquid assets mid prices: \n${Object.entries(mids).map(([asset, price]) => `${asset}: ${price} USD`).join('\n')}`;
 
+
             const portfolio = await hl.getFormattedPortfolio(runtime);
             context += `\n\n${portfolio}`;
-
-            console.log(context);
 
             return context;
         } catch (error) {
