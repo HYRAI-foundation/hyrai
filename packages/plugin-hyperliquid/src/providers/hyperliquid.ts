@@ -55,18 +55,23 @@ export class HL {
     }
 
     async getAllMids() {
-        const cacheKey = `mids`;
-        const cachedValue = await this.getCachedData<Awaited<ReturnType<typeof this.sdk.info.getAllMids>>>(cacheKey);
+        try {
+            const cacheKey = `mids`;
+            const cachedValue = await this.getCachedData<Awaited<ReturnType<typeof this.sdk.info.getAllMids>>>(cacheKey);
 
-        if (cachedValue) {
-            console.log(`Cache hit for ${cacheKey}`);
-            return cachedValue;
+            if (cachedValue) {
+                console.log(`Cache hit for ${cacheKey}`);
+                return cachedValue;
+            }
+            console.log(`Cache miss for ${cacheKey}`);
+
+            const data = await this.sdk.info.getAllMids();
+            await this.setCachedData(cacheKey, data);
+            return data
+        } catch (error) {
+            console.error("Error fetching mids:", error);
+            return null;
         }
-        console.log(`Cache miss for ${cacheKey}`);
-
-        const data = await this.sdk.info.getAllMids();
-        await this.setCachedData(cacheKey, data);
-        return data
     }
 
     async getPerpPortfolio() {
@@ -134,8 +139,9 @@ export const hyperliquidProvider: Provider = {
             let context = '';
 
             const mids = await hl.getAllMids();
-            context += `Hyperliquid assets mid prices: \n${Object.entries(mids).map(([asset, price]) => `${asset}: ${price} USD`).join('\n')}`;
-
+            if (mids) {
+                context += `Hyperliquid assets mid prices: \n${Object.entries(mids).map(([asset, price]) => `${asset}: ${price} USD`).join('\n')}`;
+            }
 
             const portfolio = await hl.getFormattedPortfolio(runtime);
             context += `\n\n${portfolio}`;
